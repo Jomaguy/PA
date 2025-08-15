@@ -1,6 +1,8 @@
 // RSS-based news service - focused on technology, markets, and international politics
 // Fetches real news from trusted RSS sources with topic filtering
 
+import { Platform } from 'react-native';
+
 export interface NewsArticle {
   title: string;
   description: string;
@@ -389,17 +391,18 @@ export const getNewsTopics = (articles: NewsArticle[]): string[] => {
 };
 
 /**
- * Health check for RSS sources
+ * Health check for RSS sources with platform-aware testing
  */
 export const checkRSSSourcesHealth = async (): Promise<{working: number, total: number, byCategory: Record<string, number>}> => {
-  console.log('🔍 Checking focused RSS sources health...');
+  console.log(`🔍 Checking focused RSS sources health (${Platform.OS} platform)...`);
   
   const promises = RSS_SOURCES.map(async (source) => {
     try {
       const articles = await fetchRSSFeed(source.url, source.name, source.category);
-      return { success: articles.length > 0, category: source.category };
-    } catch {
-      return { success: false, category: source.category };
+      return { success: articles.length > 0, category: source.category, name: source.name };
+    } catch (error) {
+      console.log(`❌ Health check failed for ${source.name}:`, error.message);
+      return { success: false, category: source.category, name: source.name };
     }
   });
   
@@ -408,16 +411,28 @@ export const checkRSSSourcesHealth = async (): Promise<{working: number, total: 
   
   // Count working sources by category
   const byCategory: Record<string, number> = {};
+  const workingSources: string[] = [];
+  const failingSources: string[] = [];
+  
   results.forEach((result) => {
     if (result.status === 'fulfilled') {
       const category = result.value.category;
       if (!byCategory[category]) byCategory[category] = 0;
-      if (result.value.success) byCategory[category]++;
+      if (result.value.success) {
+        byCategory[category]++;
+        workingSources.push(result.value.name);
+      } else {
+        failingSources.push(result.value.name);
+      }
     }
   });
   
-  console.log(`📊 RSS Health: ${working}/${RSS_SOURCES.length} sources working`);
+  console.log(`📊 RSS Health (${Platform.OS}): ${working}/${RSS_SOURCES.length} sources working`);
   console.log('📊 By category:', byCategory);
+  console.log('✅ Working sources:', workingSources);
+  if (failingSources.length > 0) {
+    console.log('❌ Failing sources:', failingSources);
+  }
   
   return { working, total: RSS_SOURCES.length, byCategory };
 };

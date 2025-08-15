@@ -15,6 +15,9 @@ import {
 import { getMorningBriefNews, NewsArticle } from './services/rssNewsService';
 import { generateStrategicBrief } from './services/openaiService';
 import { playAudioFromBuffer, speakText, stopSpeaking, AudioPlayer } from './services/audioService';
+import { getAllTodos, getTodoStats } from './services/todoService';
+import { Todo, TodoStats } from './types/todo';
+import TodoList from './components/TodoList';
 
 const { width, height } = Dimensions.get('window');
 
@@ -30,7 +33,7 @@ const App = () => {
       case 'brief':
         return <StrategicBriefContent />;
       case 'todo':
-        return <TodoContent />;
+        return <TodoList />;
       case 'protocols':
         return <ProtocolsContent />;
       default:
@@ -177,10 +180,25 @@ const StrategicBriefContent = () => {
       
       console.log(`✅ Retrieved ${newsArticles.length} focused articles from RSS sources`);
 
-      // Stage 2: Generate strategic AI brief using focused news
+      // Stage 2: Get todo context for personalized insights
+      setLoadingStage('📋 Analyzing your todos for personalized insights...');
+      console.log('📋 Fetching todos for strategic brief context...');
+      let todos: Todo[] = [];
+      let todoStats: TodoStats | undefined = undefined;
+      try {
+        todos = await getAllTodos();
+        todoStats = await getTodoStats();
+        console.log(`✅ Retrieved ${todos.length} todos for context`);
+      } catch (todoError) {
+        console.warn('⚠️ Could not load todos, proceeding without personal context:', todoError);
+        todos = [];
+        todoStats = undefined;
+      }
+
+      // Stage 3: Generate strategic AI brief using focused news and todos
       setLoadingStage('🧠 Creating strategic brief with AI analysis...');
-      console.log('🤖 Generating strategic brief with focused RSS news...');
-      const { text, audio } = await generateStrategicBrief(newsArticles);
+      console.log('🤖 Generating strategic brief with focused RSS news and personal todos...');
+      const { text, audio } = await generateStrategicBrief(newsArticles, todos, todoStats);
       
       if (!text) {
         throw new Error('Failed to generate strategic brief');
@@ -188,7 +206,7 @@ const StrategicBriefContent = () => {
 
       setBriefText(text);
 
-      // Stage 3: Play audio
+      // Stage 4: Play audio
       if (audio) {
         setLoadingStage('🎵 Preparing high-quality audio...');
         console.log('🎵 Playing OpenAI TTS audio...');
@@ -276,8 +294,8 @@ const StrategicBriefContent = () => {
           
           <Text style={styles.voiceDescription}>
             {isLoading 
-              ? 'Analyzing focused news from Technology, Markets, and International Politics...'
-              : 'Get your strategic briefing anytime, focused on the three areas that matter most for decision-making'
+              ? 'Analyzing focused news from Technology, Markets, and International Politics with your personal todo context...'
+              : 'Get your strategic briefing anytime, focused on the three areas that matter most for decision-making, now with personalized insights based on your todos'
             }
           </Text>
           
@@ -303,44 +321,7 @@ const StrategicBriefContent = () => {
   );
 };
 
-const TodoContent = () => (
-  <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>
-    <View style={styles.featuresContainer}>
-      <Text style={styles.sectionTitle}>✅ Smart Todos</Text>
-      
-      <View style={styles.featureCard}>
-        <Text style={styles.featureIcon}>🎯</Text>
-        <Text style={styles.featureTitle}>Priority Tasks</Text>
-        <Text style={styles.featureDescription}>
-          • Complete project proposal
-          • Review client feedback
-          • Schedule team meeting
-        </Text>
-      </View>
-      
-      <View style={styles.featureCard}>
-        <Text style={styles.featureIcon}>⏰</Text>
-        <Text style={styles.featureTitle}>Time-Sensitive</Text>
-        <Text style={styles.featureDescription}>
-          • Submit expense report (Due: Today)
-          • Call insurance company (Due: Tomorrow)
-          • Book restaurant reservation (Due: This week)
-        </Text>
-      </View>
-      
-      <View style={styles.featureCard}>
-        <Text style={styles.featureIcon}>💡</Text>
-        <Text style={styles.featureTitle}>AI Suggestions</Text>
-        <Text style={styles.featureDescription}>
-          Based on your patterns, consider:
-          • Batch similar tasks together
-          • Schedule creative work for mornings
-          • Set aside time for strategic planning
-        </Text>
-      </View>
-    </View>
-  </ScrollView>
-);
+// TodoContent is now replaced by the TodoList component
 
 const ProtocolsContent = () => (
   <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false}>

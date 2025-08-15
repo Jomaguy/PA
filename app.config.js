@@ -23,12 +23,15 @@ export default {
       edgeToEdgeEnabled: true
     },
     web: {
-      favicon: "./assets/favicon.png"
+      favicon: "./assets/favicon.png",
+      bundler: "metro"
     },
     extra: {
       OPENAI_API_KEY: process.env.OPENAI_API_KEY,
       NEWS_API_KEY: process.env.NEWS_API_KEY,
-      APP_ENV: process.env.APP_ENV
+      APP_ENV: process.env.APP_ENV,
+      SUPABASE_URL: process.env.SUPABASE_URL,
+      SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY
     }
   }
 };
